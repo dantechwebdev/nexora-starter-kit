@@ -2,20 +2,16 @@ import Head from 'next/head'
 
 import type * as types from '@/lib/types'
 import * as config from '@/lib/config'
-import { getSocialImageUrl } from '@/lib/get-social-image-url'
 
 export function PageHead({
   site,
   title,
   description,
-  pageId,
-  image,
   url,
   isBlogPost
 }: types.PageProps & {
   title?: string
   description?: string
-  image?: string
   url?: string
   isBlogPost?: boolean
 }) {
@@ -24,12 +20,11 @@ export function PageHead({
   title = title ?? site?.name
   description = description ?? site?.description
 
-  const socialImageUrl = getSocialImageUrl(pageId) || image
-
   return (
     <Head>
       <meta charSet='utf-8' />
       <meta httpEquiv='Content-Type' content='text/html; charset=utf-8' />
+
       <meta
         name='viewport'
         content='width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover'
@@ -42,13 +37,11 @@ export function PageHead({
         name='theme-color'
         media='(prefers-color-scheme: light)'
         content='#fefffe'
-        key='theme-color-light'
       />
       <meta
         name='theme-color'
         media='(prefers-color-scheme: dark)'
         content='#2d3439'
-        key='theme-color-dark'
       />
 
       <meta name='robots' content='index,follow' />
@@ -73,15 +66,10 @@ export function PageHead({
         </>
       )}
 
-      {socialImageUrl ? (
-        <>
-          <meta name='twitter:card' content='summary_large_image' />
-          <meta name='twitter:image' content={socialImageUrl} />
-          <meta property='og:image' content={socialImageUrl} />
-        </>
-      ) : (
-        <meta name='twitter:card' content='summary' />
-      )}
+      {/* STATIC SOCIAL IMAGE (NO OG GENERATOR ANYMORE) */}
+      <meta name='twitter:card' content='summary_large_image' />
+      <meta name='twitter:image' content='/og.png' />
+      <meta property='og:image' content='/og.png' />
 
       {url && (
         <>
@@ -102,7 +90,7 @@ export function PageHead({
       <meta name='twitter:title' content={title} />
       <title>{title}</title>
 
-      {/* Better SEO for the blog posts */}
+      {/* BLOG SCHEMA */}
       {isBlogPost && (
         <script type='application/ld+json'>
           {JSON.stringify({
@@ -118,7 +106,7 @@ export function PageHead({
               '@type': 'Person',
               name: config.author
             },
-            image: socialImageUrl
+            image: '/og.png'
           })}
         </script>
       )}
