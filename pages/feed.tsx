@@ -11,7 +11,6 @@ import RSS from 'rss'
 
 import * as config from '@/lib/config'
 import { getSiteMap } from '@/lib/get-site-map'
-import { getSocialImageUrl } from '@/lib/get-social-image-url'
 import { getCanonicalPageUrl } from '@/lib/map-page-url'
 
 export const getServerSideProps: GetServerSideProps = async ({ req, res }) => {
@@ -20,11 +19,13 @@ export const getServerSideProps: GetServerSideProps = async ({ req, res }) => {
     res.setHeader('Content-Type', 'application/json')
     res.write(JSON.stringify({ error: 'method not allowed' }))
     res.end()
+
     return { props: {} }
   }
 
   const siteMap = await getSiteMap()
-  const ttlMinutes = 24 * 60 // 24 hours
+
+  const ttlMinutes = 24 * 60
   const ttlSeconds = ttlMinutes * 60
 
   const feed = new RSS({
@@ -38,50 +39,54 @@ export const getServerSideProps: GetServerSideProps = async ({ req, res }) => {
   for (const pagePath of Object.keys(siteMap.canonicalPageMap)) {
     const pageId = siteMap.canonicalPageMap[pagePath]!
     const recordMap = siteMap.pageMap[pageId] as ExtendedRecordMap
+
     if (!recordMap) continue
 
-    const keys = Object.keys(recordMap?.block || {})
-    const block = getBlockValue(recordMap?.block?.[keys[0]!])
+    const keys = Object.keys(recordMap.block || {})
+    const block = getBlockValue(recordMap.block?.[keys[0]!])
+
     if (!block) continue
 
     const parentPage = getBlockParentPage(block, recordMap)
+
     const isBlogPost =
       block.type === 'page' &&
       block.parent_table === 'collection' &&
       parentPage?.id === idToUuid(config.rootNotionPageId)
-    if (!isBlogPost) {
-      continue
-    }
+
+    if (!isBlogPost) continue
 
     const title = getBlockTitle(block, recordMap) || config.name
+
     const description =
       getPageProperty<string>('Description', block, recordMap) ||
       config.description
+
     const url = getCanonicalPageUrl(config.site, recordMap)(pageId)
+
     const lastUpdatedTime = getPageProperty<number>(
       'Last Updated',
       block,
       recordMap
     )
-    const publishedTime = getPageProperty<number>('Published', block, recordMap)
+
+    const publishedTime = getPageProperty<number>(
+      'Published',
+      block,
+      recordMap
+    )
+
     const date = lastUpdatedTime
       ? new Date(lastUpdatedTime)
       : publishedTime
-        ? new Date(publishedTime)
-        : new Date()
-    const socialImageUrl = getSocialImageUrl(pageId)
+      ? new Date(publishedTime)
+      : new Date()
 
     feed.item({
       title,
       url,
       date,
-      description,
-      enclosure: socialImageUrl
-        ? {
-            url: socialImageUrl,
-            type: 'image/jpeg'
-          }
-        : undefined
+      description
     })
   }
 
@@ -91,7 +96,9 @@ export const getServerSideProps: GetServerSideProps = async ({ req, res }) => {
     'Cache-Control',
     `public, max-age=${ttlSeconds}, stale-while-revalidate=${ttlSeconds}`
   )
+
   res.setHeader('Content-Type', 'text/xml; charset=utf-8')
+
   res.write(feedText)
   res.end()
 
